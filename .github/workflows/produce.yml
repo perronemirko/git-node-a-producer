@@ -1,0 +1,24 @@
+name: Producer Node
+
+on:
+  repository_dispatch:
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Receive event
+        run: |
+          echo '${{ toJson(github.event.client_payload) }}' > event.json
+
+      - name: Enrich event
+        run: |
+          jq '. + {node:"A"}' event.json > enriched.json
+
+      - name: Dispatch to Node B
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+            https://api.github.com/repos/perronemirko/git-node-b-processor/dispatches \
+            -d "{\"event_type\":\"process_event\",\"client_payload\":$(cat enriched.json)}"
